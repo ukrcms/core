@@ -17,7 +17,7 @@ composer require ukrcms/core:0.1
   шляхи підміняйте на свої
 ```
   cd /home/ivan/work/www/ukrcms/core/
-  git clone https://ukrcms@bitbucket.org/ukrcms/core.git .
+  git clone https://github.com/ukrcms/core.git .
   composer update
 ```
 

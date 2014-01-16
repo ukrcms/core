@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<ruleset name="UkrCMS Coding Standard">
+    <description>A custom coding standard</description>
+
+    <rule ref="Generic.Files.LineLength">
+        <properties>
+            <property name="absoluteLineLimit" value="160"/>
+            <property name="lineLimit" value="160"/>
+        </properties>
+    </rule>
+
+
+    <rule ref="Generic.Files.LineEndings" data-msg="Закінчення рядка">
+        <properties>
+            <property name="eolChar" value="\n" data-type="input"/>
+        </properties>
+    </rule>
+
+
+</ruleset>

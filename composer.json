@@ -1,0 +1,30 @@
+{
+  "name": "ukrcms/core",
+  "description": "ukrcms core library",
+  "minimum-stability": "stable",
+  "license": "GPL v2",
+  "authors": [
+    {
+      "name": "Funivan",
+      "email": "dev@funivan.com"
+    },
+    {
+      "name": "UkrCms team",
+      "email": "dev@ukrcms.com"
+    }
+  ],
+  "autoload": {
+    "psr-0": {
+      "Uc\\Core\\": "src/"
+    },
+    "files": [
+      "src/Uc/Core/Uc.php"
+    ]
+  },
+  "require-dev": {
+    "phpunit/phpunit": "3.7.*",
+    "squizlabs/php_codesniffer": "1.*"
+  },
+  "require": {
+  }
+}

@@ -43,9 +43,9 @@
     protected $isMultiLanguage = false;
 
     /**
-     * @var string/null
+     * @var string
      */
-    protected $currentLanguage = null;
+    protected $currentLanguage = '';
 
     /**
      * @var null
@@ -64,6 +64,7 @@
     protected $selectClass = \Uc\Core\Db\Select::N;
 
     protected static $tableInstances = array();
+
 
     /**
      * @return string
@@ -91,7 +92,8 @@
     }
 
     /**
-     * clear cache
+     * Очищення кешу, останнього доданого рядка в основній таблиці,
+     * потрібно для роботи багатомовності, основна таблиця посилається на таблицю з мовами
      */
     public function clearLastInsertedRowCache() {
       $this->lastInsertedRowCache = null;
@@ -101,7 +103,7 @@
      * @return string
      */
     public function getCurrentLanguage() {
-      if ($this->currentLanguage === null) {
+      if ($this->currentLanguage === '') {
         return \Uc::app()->language->getCurrent();
       }
       return $this->currentLanguage;
@@ -114,6 +116,81 @@
     public function relations() {
 
     }
+
+    /**
+     * @param string $tableName
+     * @param array $binds key=>value   Key - name of column
+     * @return \PDOStatement
+     */
+    private function insertRow($tableName, array $binds) {
+      $columns = array();
+
+      $db = $this->getAdapter();
+
+      foreach ($binds as $col => $value) {
+        $columns[] = $db->quote($col) . ' = ?';
+      }
+
+      $sql = "INSERT INTO " . $db->quote($tableName) . ' SET ' . implode(', ', $columns) . '';
+      $binds = array_values($binds);
+
+      return $db->execute($sql, $binds);
+    }
+
+
+    /**
+     * @param string $tableName
+     * @param array $binds
+     * @param array|string $where
+     * @return \PDOStatement
+     */
+    protected function updateRow($tableName, array $binds, $where) {
+
+      $columns = array();
+
+      $db = $this->getAdapter();
+      foreach ($binds as $col => $value) {
+        $columns[] = $db->quote($col) . ' = ?';
+      }
+
+      list($whereCondition, $params) = $this->getWhereAndParams($where);
+      $binds = array_values($binds);
+      $binds = array_merge($binds, $params);
+
+      $sql = "UPDATE " . $db->quote($tableName) . ' SET ' . implode(', ', $columns) . ' WHERE ' . $whereCondition;
+
+      return $db->execute($sql, $binds);
+    }
+
+    /**
+     * Розставовка ключів і значень для запиту в БД
+     * @param $fields
+     * @param $params
+     * @param $set
+     */
+    private static function extractFieldsValues($fields, $params, $set) {
+      foreach ($fields as $key => $value) {
+        $params[] = $value;
+        $set[] = '`' . $key . '` = ? ';
+      }
+    }
+
+    private function insertRowInTable($tableName, $tableParams, $tableSet) {
+      $sql = 'Insert into ' . $tableName . ' Set ' . implode(', ', $tableSet);
+      $smt = $this->getAdapter()->execute($sql, $tableParams);
+      return $smt->errorCode();
+    }
+
+    private function updateRowInTable($tableName, $whereString, $params, $set) {
+      $sql = 'Update `' . $tableName . '` Set ' . implode(', ', $set) . ' Where ' . $whereString . '';
+      return $this->getAdapter()->execute($sql, $params);
+    }
+
+    private function deleteRowInTable($tableName, $whereString, $params) {
+      $sql = 'Delete from `' . $tableName . '`  Where ' . $whereString . '';
+      return $this->getAdapter()->execute($sql, $params);
+    }
+
 
     /**
      * Return relation info as array or null if relation with this name doe not exist
@@ -132,10 +209,10 @@
     public function __construct() {
 
       if ($this->isMultiLanguage && empty(\Uc::app()->db->tableLangsSuffix)) {
-        throw new \Uc\Core\Exception('Set \Uc::app()->db->tableLangsSuffix, because this table"' . $this->getTableName() . '" has connected multilang table"');
+        throw new \Uc\Core\Exception('Invalid tableLangsSuffix for multilanguage table');
       }
 
-      $stmt = $this->getAdapter()->prepare('SHOW COLUMNS FROM ' . $this->getAdapter()->quoteTable($this->getTableName()));
+      $stmt = $this->getAdapter()->prepare('SHOW COLUMNS FROM ' . $this->getAdapter()->quote($this->getTableName()));
 
       $stmt->execute();
       $rawColumnData = $stmt->fetchAll();
@@ -143,7 +220,7 @@
       $this->setFieldsInTable($this->getTableName(), $rawColumnData);
 
       if ($this->isMultiLanguage) {
-        $stmt = $this->getAdapter()->prepare('SHOW COLUMNS FROM ' . $this->getAdapter()->quoteTable($this->getMultiLangTable()));
+        $stmt = $this->getAdapter()->prepare('SHOW COLUMNS FROM ' . $this->getAdapter()->quote($this->getMultiLangTable()));
         $stmt->execute();
         $rawColumnDataMultiLang = $stmt->fetchAll();
 
@@ -174,21 +251,19 @@
     }
 
     /**
+     * встановлення привязки поля до конкретної таблиці
      * @param       $tableName
      * @param array $data
      */
     private function setFieldsInTable($tableName, $data = array()) {
-
       foreach ($data as $item) {
         $this->fieldsInTable[$tableName][] = $item['Field'];
       }
-
     }
 
-    /*
-     * find table name by field
-     */
+
     /**
+     * Отримання назви таблиці по назві поля
      * @param $fieldName
      * @return bool|int|string
      */
@@ -212,7 +287,6 @@
     }
 
     /**
-     * @static
      * @param string $currentLang
      * @return $this
      */
@@ -221,7 +295,7 @@
       if (empty(self::$tableInstances[$tableClass])) {
         self::$tableInstances[$tableClass] = new $tableClass();
       }
-      self::$tableInstances[$tableClass]->currentLang = $currentLang;
+      self::$tableInstances[$tableClass]->currentLanguage = $currentLang;
       return self::$tableInstances[$tableClass];
     }
 
@@ -254,7 +328,7 @@
 
     /**
      * @param array $attributes
-     * @return array
+     * @return array 2 dimension array
      */
     protected function getWhereAndParams($attributes = null) {
       if ($attributes === null) {
@@ -296,7 +370,7 @@
       if ($select instanceof \Uc\Core\Db\Select) {
 
         if ($this->isMultiLanguage) {
-          //  bind multilanguage table
+          //  bind multiLanguage table
 
           $select->cols('*');
           $select->join('LEFT JOIN '
@@ -400,31 +474,27 @@
     }
 
     /**
-     * @todo переписати цей метод
      * @author  Ivan Scherbak <dev@funivan.com> 7/20/12 9:37 PM
      * @param array $fields
-     * @return mixed (boolean | integer)
+     * @return integer|boolean
      */
     public function insert($fields) {
 
       if ($this->isMultiLanguage) {
 
-        $set = $params = $tables = array();
+        $tablesFields = array();
 
         $fields['lang'] = $this->getCurrentLanguage();
-        //@todo $tables по назві змінної спочатку думаєш що це масив таблиць, а виявляється масив полів Дуже важко орієнтуватись
-        $tables = $this->extractFields($tables, $fields, $set, $params);
+        $tablesFields = $this->extractFields($tablesFields, $fields);
 
         $error = '';
         if ($this->lastInsertedRowCache === null) {
-          $sql = 'Insert into ' . $this->getTableName() . ' Set ' . implode(', ', $tables[$this->getTableName()]['set']);
-          $smt = $this->getAdapter()->execute($sql, $tables[$this->getTableName()]['params']);
+          $error .= $this->insertRowInTable($this->getTableName(), $tablesFields[$this->getTableName()]['params'], $tablesFields[$this->getTableName()]['set']);
           $this->lastInsertedRowCache = $this->getAdapter()->getLastInsertId();
-          $error = $smt->errorCode();
         }
 
         //  insert row into multilanguage table
-        $table = $tables[$this->getMultiLangTable()];
+        $table = $tablesFields[$this->getMultiLangTable()];
         //  set bind to lang table row
         $table['params'][] = $this->lastInsertedRowCache;
         $table['set'][] = '`table_lang_id` = ? '; //@todo трохи не гуд що зашито, можливо винести у властивість таблиці
@@ -432,9 +502,7 @@
         //  set bind to lang
         $table['params'][array_search('`lang` = ? ', $table['set'])] = $this->getCurrentLanguage();
 
-        $sql = 'Insert into ' . $this->getMultiLangTable() . ' Set ' . implode(', ', $table['set']);
-        $smt = $this->getAdapter()->execute($sql, $table['params']);
-        $error .= "\n" . $smt->errorCode();
+        $error .= $this->insertRowInTable($this->getMultiLangTable(), $table['params'], $table['set']);
 
         if ($error == '00000' and empty($this->lastInsertedRowCache)) {
           # pk is not auto increment and record was created
@@ -445,78 +513,52 @@
         }
       } else {
 
-        //@todo переписати метод Винести код який повторяється вгору
-        $set = $params = array();
-        foreach ($fields as $key => $value) {
-          $params[] = $value;
-          $set[] = '`' . $key . '` = ? ';                  //@todo юзати qutoe
-        }
+        $this->insertRow($this->getTableName(), $fields);
+        $pk = $this->getAdapter()->getLastInsertId();
 
-        $sql = 'Insert into ' . $this->getTableName() . ' Set ' . implode(', ', $set);
-        $smt = $this->getAdapter()->execute($sql, $params);
-        $pk = $this->getAdapter()->lastInsertId();
-        $error = $smt->errorCode();
-
-        if ($error == '00000' and empty($pk)) {
-          # pk is not auto increment and record was created
-          return true;
-        } else {
-          #
-          return $pk;
-        }
+        return !empty($pk) ? $pk : true;
       }
     }
 
     /**
      *
      * @param array $fields
-     * @param array $where
+     * @param array|string $where
      * @return int
      */
     public function update($fields, $where) {
 
       if ($this->isMultiLanguage) {
-        $tables = array();
+        /*g*/
+        $tablesFields = array();
+        $tablesFields = $this->extractFields($tablesFields, $fields);
 
-        foreach ($fields as $key => $value) {
-          $tableName = $this->getTableNameByField($key);
-          $tables[$tableName]['binds'][] = $value;
-          $tables[$tableName]['set'][] = '`' . $key . '` = ? ';
-        }
-
-        if (array_key_exists($this->getMultiLangTable(), $tables)) {
+        if (array_key_exists($this->getMultiLangTable(), $tablesFields)) {
           list($whereString, $params) = $this->getWhereAndParams(array('table_lang_id' => $where[0],
             'lang' => $where[1]));
-          $params = array_merge($tables[$this->getMultiLangTable()]['binds'], $params);
-          $sql = 'Update `' . $this->getMultiLangTable() . '` Set ' . implode(', ', $tables[$this->getMultiLangTable()]['set']) . ' Where ' . $whereString . '';
-          $smt = $this->getAdapter()->execute($sql, $params);
+
+          $params = array_merge($tablesFields[$this->getMultiLangTable()]['params'], $params);
+          $this->updateRowInTable($this->getMultiLangTable(), $whereString, $params, $tablesFields[$this->getMultiLangTable()]['set']);
         }
 
-        if (array_key_exists($this->getTableName(), $tables)) {
+        if (array_key_exists($this->getTableName(), $tablesFields)) {
           list($whereString, $params) = $this->getWhereAndParams($where[0]);
 
-          $params = array_merge($tables[$this->getTableName()]['binds'], $params);
-          $sql = 'Update `' . $this->getTableName() . '` Set ' . implode(', ', $tables[$this->getTableName()]['set']) . ' Where ' . $whereString . '';
-          $smt = $this->getAdapter()->execute($sql, $params);
+          $params = array_merge($tablesFields[$this->getTableName()]['params'], $params);
+          $smt = $this->updateRowInTable($this->getTableName(), $whereString, $params, $tablesFields[$this->getTableName()]['set']);
           return $smt->rowCount();
         }
 
         $sql = 'Select * FROM `' . $this->getTableName() . '`';
         $smt = $this->getAdapter()->execute($sql);
         return $smt->rowCount();
+
+        /*g*/
       } else {
-        list($whereString, $params) = $this->getWhereAndParams($where);
 
-        $set = array();
-        foreach ($fields as $key => $value) {
-          $binds[] = $value;
-          $set[] = '`' . $key . '` = ? ';
-        }
+        $stm = $this->updateRow($this->getTableName(), $fields, $where);
+        return $stm->rowCount();
 
-        $params = array_merge($binds, $params);
-        $sql = 'Update `' . $this->getTableName() . '` Set ' . implode(', ', $set) . ' Where ' . $whereString . '';
-        $smt = $this->getAdapter()->execute($sql, $params);
-        return $smt->rowCount();
       }
     }
 
@@ -525,17 +567,17 @@
      * @return int
      */
     public function delete($where) {
+
       if ($this->isMultiLanguage) {
         list($whereString, $params) = $this->getWhereAndParams(array('table_lang_id' => $where));
 
-        $sql = 'Delete  from `' . $this->getMultiLangTable() . '`  Where ' . $whereString . '';
-        $smt = $this->getAdapter()->execute($sql, $params);
+        $this->deleteRowInTable($this->getMultiLangTable(), $whereString, $params);
       }
 
       list($whereString, $params) = $this->getWhereAndParams($where);
-      $sql = 'Delete from `' . $this->getTableName() . '`  Where ' . $whereString . '';
-      $smt = $this->getAdapter()->execute($sql, $params);
-      return $smt->rowCount();
+
+      return $this->deleteRowInTable($this->getTableName(), $whereString, $params);
+
     }
 
     /**
@@ -572,29 +614,21 @@
     }
 
     /**
-     * @todo #refactoring Delete this method
-     * @return mixed
-     */
-    public function getRowCount() {
-      $sql = 'Select * FROM `' . $this->getTableName() . '`';
-      $smt = $this->getAdapter()->execute($sql);
-      return $smt->rowCount();
-    }
-
-    /**
+     * Розстановка полів по таблицях
      * @param $tables
      * @param $fields
-     * @param $set
-     * @param $params
+     * @internal param $set
+     * @internal param $params
      * @return mixed
      */
-    protected function extractFields($tables, $fields, $set, $params) {
+    protected function extractFields($tables, $fields) {
       foreach ($fields as $key => $value) {
         $tableName = $this->getTableNameByField($key);
 
-        $tables[$tableName]['params'][] = $params[] = $value;
-        $tables[$tableName]['set'][] = $set[] = '`' . $key . '` = ? ';
+        $tables[$tableName]['params'][] = $value;
+        $tables[$tableName]['set'][] = '`' . $key . '` = ? ';
       }
       return $tables;
     }
+
   }

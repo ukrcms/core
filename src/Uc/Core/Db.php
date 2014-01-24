@@ -156,10 +156,12 @@
     }
 
     /**
+     * Quote table and column names
+     *
      * @param string $tableName
      * @return string
      */
-    public function quoteTable($tableName) {
+    public function quote($tableName) {
       $q = self::QUOTE_IDENTIFIER;
       return ($q . str_replace("$q", "$q$q", $tableName) . $q);
     }

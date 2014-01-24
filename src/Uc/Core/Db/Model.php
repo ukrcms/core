@@ -142,9 +142,9 @@
             $id = $this->pk();
             if (!empty($id)) {
               $db = $table->getAdapter();
-              $q = 'DELETE FROM ' . $db->quoteTable($relationTableReference['tableName'])
+              $q = 'DELETE FROM ' . $db->quote($relationTableReference['tableName'])
                 . ' where '
-                . $db->quoteTable($relationTableReference['myField']) . ' = ? ';
+                . $db->quote($relationTableReference['myField']) . ' = ? ';
               $db->execute($q, array($id));
               return true;
             }
@@ -183,15 +183,15 @@
               );
 
               # delete relation with this model
-              $q = 'DELETE FROM ' . $table->getAdapter()->quoteTable($relationTableReference['tableName']) . ' WHERE '
-                . $table->getAdapter()->quoteTable($relationTableReference['myField']) . ' = ? and '
-                . $table->getAdapter()->quoteTable($relationTableReference['foreignField']) . ' = ? ';
+              $q = 'DELETE FROM ' . $table->getAdapter()->quote($relationTableReference['tableName']) . ' WHERE '
+                . $table->getAdapter()->quote($relationTableReference['myField']) . ' = ? and '
+                . $table->getAdapter()->quote($relationTableReference['foreignField']) . ' = ? ';
               $table->getAdapter()->execute($q, $params);
 
               # insert id`s of two entities in many_many table
-              $q = 'INSERT INTO ' . $table->getAdapter()->quoteTable($relationTableReference['tableName'])
-                . ' SET ' . $table->getAdapter()->quoteTable($relationTableReference['myField']) . ' = ? , '
-                . $table->getAdapter()->quoteTable($relationTableReference['foreignField']) . ' = ? ';
+              $q = 'INSERT INTO ' . $table->getAdapter()->quote($relationTableReference['tableName'])
+                . ' SET ' . $table->getAdapter()->quote($relationTableReference['myField']) . ' = ? , '
+                . $table->getAdapter()->quote($relationTableReference['foreignField']) . ' = ? ';
               $table->getAdapter()->execute($q, $params);
 
             }
@@ -355,30 +355,15 @@
 
           if ($this->stored) {
             # do Update of entity
-            $pk = $this->pk();
             $fields = array_intersect_key($this->data, $this->columnChanged);
-            $result = $this->table->update($fields, array($pk, $this->lang));
+
+            $result = $this->table->update($fields, $this->pk());
           } else {
             # do Insert of entity
             $result = $this->table->insert($this->data);
-
-            if ($result != false) {
-              # set primary key for entity
-              /*
-               * @todo update full data for Entity.
-               * For example we have fields id, name, title, date
-               * date is set automatically with database engine
-               * if we make insert in future we want to get date
-               * for this entity.
-               * So we need to set date for this model
-               * Look up to zend db
-               */
-
-              # Primary key can be set from modules.
+            if (!is_bool($result)) {
               $pk = $table->pk();
-              if (empty($this->$pk)) {
-                $this->$pk = $result; # last insert id
-              }
+              $this->$pk = $result; # last insert id
             }
           }
 
@@ -387,6 +372,7 @@
             $this->stored = true;
             $this->columnChanged = array();
           } else {
+            #in fact if model not saved we have exception from DB
             throw new \Uc\Core\Exception('Can not save entity ' . get_class($this));
           }
         }

@@ -304,7 +304,7 @@
      */
     public function order($field, $exp = false) {
       if (!empty($exp)) {
-        $this->order['_def'] = \Uc::app()->db->quoteTable($field) . " " . $exp;
+        $this->order['_def'] = \Uc::app()->db->quote($field) . " " . $exp;
       } else {
         $this->order['_def'] = $field;
       }
@@ -388,27 +388,27 @@
 
         if ($relation['type'] == $table::RELATION_MANY_TO_MANY) {
           $relatedTableReference = $relation['reference'];
-          $joins[] = 'LEFT JOIN ' . $db->quoteTable($relatedTableReference['tableName'])
+          $joins[] = 'LEFT JOIN ' . $db->quote($relatedTableReference['tableName'])
             . ' on ' . $this->tableName . '.' . $table->pk() . ' = ' . $relatedTableReference['tableName'] . '.' . $relatedTableReference['myField'];
-          $joins[] = 'LEFT JOIN ' . $db->quoteTable($select->tableName)
+          $joins[] = 'LEFT JOIN ' . $db->quote($select->tableName)
             . ' on '
             . $select->tableName . '.' . $select->table->pk() . ' = ' . $relatedTableReference['tableName'] . '.' . $relatedTableReference['foreignField'];
 
         } elseif ($relation['type'] == $table::RELATION_ONE_TO_MANY) {
           if (!empty($relation['foreignField'])) {
-            $joins[] = 'LEFT JOIN ' . $db->quoteTable($select->getTableName())
+            $joins[] = 'LEFT JOIN ' . $db->quote($select->getTableName())
               . ' on ' . $this->tableName . '.' . $table->pk() . ' = ' . $select->getTableName() . '.' . $relation['foreignField'];
           } else {
-            $joins[] = 'LEFT JOIN ' . $db->quoteTable($select->getTableName())
+            $joins[] = 'LEFT JOIN ' . $db->quote($select->getTableName())
               . ' on ' . $this->tableName . '.' . $table->pk() . ' = ' . $select->getTableName() . '.' . $relation['myField'];
           }
 
         } elseif ($relation['type'] == $table::RELATION_ONE_TO_ONE) {
           if (!empty($relation['myField'])) {
-            $joins[] = 'LEFT JOIN ' . $db->quoteTable($select->getTableName())
+            $joins[] = 'LEFT JOIN ' . $db->quote($select->getTableName())
               . ' on ' . $this->tableName . '.' . $relation['myField'] . ' = ' . $select->getTableName() . '.' . $table->pk();
           } else {
-            $joins[] = 'LEFT JOIN ' . $db->quoteTable($select->getTableName())
+            $joins[] = 'LEFT JOIN ' . $db->quote($select->getTableName())
               . ' on ' . $this->tableName . '.' . $table->pk() . ' = ' . $select->getTableName() . '.' . $relation['foreignField'];
           }
         } else {

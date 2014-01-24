@@ -5,6 +5,7 @@ php:
   - 5.3
 
 before_script:
+  - mysql -e 'create database IF NOT EXISTS ukrcms_core_test;create database IF NOT EXISTS ukrcms_core_test';
   - composer self-update && composer --version
   - composer update --dev
 

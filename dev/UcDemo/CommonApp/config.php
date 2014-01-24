@@ -1,5 +1,7 @@
 <?php
-  $travis = !empty($_ENV['TRAVIS']);
+
+  $travis = getenv('TRAVIS');
+
   return array(
     'config' => array(),
     'db' => array(

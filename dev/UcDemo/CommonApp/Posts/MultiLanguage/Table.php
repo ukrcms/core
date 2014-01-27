@@ -18,14 +18,13 @@
 
     public function createDemoTable() {
 
-
       $db = $this->getAdapter();
 
       $sql = "
       DROP TABLE IF EXISTS `" . $this->getMultiLangTable() . "`;
       CREATE TABLE IF NOT EXISTS `" . $this->getMultiLangTable() . "` (
-        `table_lang_id` bigint(20) NOT NULL ,
-        `lang` varchar(2) NOT NULL ,
+        `table_lang_id` bigint(20) NOT NULL,
+        `lang` varchar(2) NOT NULL,
         `content` text NOT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
       ";
@@ -34,7 +33,7 @@
       $sql = "
       DROP TABLE IF EXISTS `" . $this->getTableName() . "`;
       CREATE TABLE IF NOT EXISTS `" . $this->getTableName() . "` (
-        `id` bigint(20) NOT NULL,
+        `id` bigint(20) NOT NULL AUTO_INCREMENT,
         `status` tinyint(1) NOT NULL DEFAULT '0',
         PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

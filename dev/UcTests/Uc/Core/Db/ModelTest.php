@@ -65,4 +65,43 @@
 
     }
 
+    public function testMultiLangAddPost() {
+      \UcDemo\CommonApp\App::init();
+
+      $table = \UcDemo\CommonApp\Posts\MultiLanguage\Table::instance();
+      $table->createDemoTable();
+
+      $all = $table->fetchOne('0');
+      $this->assertEmpty($all);
+
+      $model = $table->createModel();
+      $model->status = '1';
+      $model->content = 'Ukrainian';
+      $model->save();
+
+      $post = $table->fetchOne(array(
+        'id' => '0'
+      ));
+      $this->assertInstanceOf('\UcDemo\CommonApp\Posts\Model', $post);
+      $this->assertEquals($post->lang, \Uc::app()->language->getDefault());
+      $this->assertEquals($post->content, 'Ukrainian');
+
+      $model = $table->instance('en')->createModel();
+      $model->status = '1';
+
+      $model->content = 'English';
+      $model->save();
+
+      $post = $table->fetchOne(array(
+        'lang' =>'en'
+      ));
+
+      $this->assertInstanceOf('\UcDemo\CommonApp\Posts\Model', $post);
+
+      $this->assertEquals($post->id, 0);
+      $this->assertEquals($post->lang, 'en');
+      $this->assertEquals($post->content, 'English');
+
+    }
+
   }

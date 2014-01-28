@@ -74,15 +74,15 @@
       $all = $table->fetchAll();
       $this->assertEmpty($all);
 
-      $model = $table->createModel();
+      $model = $table->instance()->createModel();
       $model->status = '1';
       $model->content = 'Ukrainian';
       $model->save();
 
-      $post = $table->fetchOne(array(
+      $post = $table->instance()->fetchOne(array(
         'id' => '1'
       ));
-      $this->assertInstanceOf('\UcDemo\CommonApp\Posts\Model', $post);
+      $this->assertInstanceOf('\Uc\Core\Db\Model', $post);
       $this->assertEquals($post->lang, \Uc::app()->language->getDefault());
       $this->assertEquals($post->content, 'Ukrainian');
 
@@ -93,10 +93,10 @@
       $model->save();
 
       $post = $table->fetchOne(array(
-        'lang' => 'en'
+        'id' => '1'
       ));
 
-      $this->assertInstanceOf('\UcDemo\CommonApp\Posts\Model', $post);
+      $this->assertInstanceOf('\Uc\Core\Db\Model', $post);
 
       $this->assertEquals($post->id, 1);
       $this->assertEquals($post->lang, 'en');
@@ -119,16 +119,16 @@
       $all = $table->fetchAll();
       $this->assertEmpty($all);
 
-      $model = $table->createModel();
+      $model = $table->instance()->createModel();
       $model->status = '1';
       $model->content = 'Ukrainian';
       $model->save();
 
-      $post = $table->fetchOne(array(
+      $post = $table->instance()->fetchOne(array(
         'id' => '1'
       ));
 
-      $this->assertInstanceOf('\UcDemo\CommonApp\Posts\Model', $post);
+      $this->assertInstanceOf('\Uc\Core\Db\Model', $post);
       $this->assertEquals($post->lang, \Uc::app()->language->getDefault());
       $this->assertEquals($post->content, 'Ukrainian');
 
@@ -138,11 +138,11 @@
       $model->content = 'English';
       $model->save();
 
-      $post = $table->fetchOne(array(
-        'lang' => 'en'
+      $post = $table->instance('en')->fetchOne(array(
+        'id' => '1'
       ));
 
-      $this->assertInstanceOf('\UcDemo\CommonApp\Posts\Model', $post);
+      $this->assertInstanceOf('\Uc\Core\Db\Model', $post);
 
       $this->assertEquals($post->id, 1);
       $this->assertEquals($post->lang, 'en');
@@ -150,7 +150,7 @@
 
       $table->instance()->clearLastInsertedRowCache();
 
-      $model = $table->instance('ua')->createModel();
+      $model = $table->instance()->createModel();
       $model->status = '0';
       $model->content = 'Ukrainian1';
       $model->save();
@@ -178,6 +178,17 @@
       $this->assertEquals($post->id, 2);
       $this->assertEquals($post->lang, 'en');
       $this->assertEquals($post->content, 'English1');
+
+
+      $post = $table->instance('en')->fetchOne(array(
+        'id' => '1'
+      ));
+
+      $this->assertInstanceOf('\Uc\Core\Db\Model', $post);
+
+      $this->assertEquals($post->id, 1);
+      $this->assertEquals($post->lang, 'en');
+      $this->assertEquals($post->content, 'English');
 
     }
 

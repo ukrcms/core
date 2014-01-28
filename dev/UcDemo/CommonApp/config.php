@@ -9,5 +9,15 @@
       'username' => $travis ? 'travis' : 'root',
       'password' => $travis ? '' : '1111',
       'tablePrefix' => 'uc_',
+      'tableLangsSuffix' => "_langs",
+
     ),
+
+    'language' => array(
+      'languages' => array(
+        'ua' => 'localhost/ukrcmsblog',
+        'en' => 'localhost/ukrcmsblog/en',
+      ),
+      'default' => 'ua',
+    )
   );

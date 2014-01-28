@@ -93,7 +93,8 @@
 
     /**
      * Очищення кешу, останнього доданого рядка в основній таблиці,
-     * потрібно для роботи багатомовності, основна таблиця посилається на таблицю з мовами
+     * потрібно для роботи багатомовності,
+     * основна таблиця посилається на таблицю з мовами
      */
     public function clearLastInsertedRowCache() {
       $this->lastInsertedRowCache = null;
@@ -497,7 +498,8 @@
         $table = $tablesFields[$this->getMultiLangTable()];
         //  set bind to lang table row
         $table['params'][] = $this->lastInsertedRowCache;
-        $table['set'][] = '`table_lang_id` = ? '; //@todo трохи не гуд що зашито, можливо винести у властивість таблиці
+        //@todo трохи не гуд що зашито, можливо винести у властивість таблиці
+        $table['set'][] = '`table_lang_id` = ? ';
 
         //  set bind to lang
         $table['params'][array_search('`lang` = ? ', $table['set'])] = $this->getCurrentLanguage();

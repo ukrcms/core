@@ -112,7 +112,7 @@
             $component->$key = $value;
           }
         } else {
-          throw new Exception('Invalid component config. Must be array. Component #' . $componentName);
+          throw new Exception('Invalid component configuration. Must be array. Component #' . $componentName);
         }
 
         $component->init();
@@ -120,11 +120,7 @@
         $this->$componentName = $component;
       }
 
-      if (empty($this->config)) {
-        throw new Exception('Config component must be defined');
-      }
-
-      if ($this->config->isDevIp()) {
+      if (!empty($this->config) and $this->config->isDevIp()) {
         error_reporting(E_ALL);
         ini_set('display_errors', 1);
       }

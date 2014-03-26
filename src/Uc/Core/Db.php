@@ -49,12 +49,6 @@
 
 
     /**
-     * @todo move to Language component
-     * @var string
-     */
-    public $tableLangsSuffix = '';
-
-    /**
      * @var \PDO
      */
     protected $pdo = null;
@@ -102,7 +96,7 @@
      * @return \PDOStatement
      */
     public function execute($query, $binds = array()) {
-      $stmt = $this->prepare($query);
+      $stmt = $this->pdo->prepare($query);
       $stmt->execute($binds);
       return $stmt;
     }
@@ -139,20 +133,20 @@
 
     /**
      * @param string $sql
-     * @param array $params
+     * @param array $binds
      * @return array
      */
-    public function fetchCol($sql, $params = array()) {
-      return $this->execute($sql, $params)->fetchAll(\PDO::FETCH_COLUMN, 0);
+    public function fetchCol($sql, $binds = array()) {
+      return $this->execute($sql, $binds)->fetchAll(\PDO::FETCH_COLUMN, 0);
     }
 
     /**
      * @param string $sql
-     * @param array $params
+     * @param array $binds
      * @return array
      */
-    public function fetchAll($sql, $params = array()) {
-      return $this->execute($sql, $params)->fetchAll(\PDO::FETCH_ASSOC);
+    public function fetchAll($sql, $binds = array()) {
+      return $this->execute($sql, $binds)->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     /**

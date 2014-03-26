@@ -53,7 +53,7 @@
     public function __construct(array $data = array(), $config = array(), $table = null) {
 
       if (!empty($table)) {
-        $this->setTable($table);
+        $this->table = $table;
       }
 
       if (isset($config['stored'])) {
@@ -90,7 +90,7 @@
         return true;
       }
 
-      return ($this->table->getRelation($name) !== null);
+      return ($this->table->getRelationInfo($name) !== null);
     }
 
     /**
@@ -101,7 +101,7 @@
     public function __get($name) {
       if ($this->table->hasColumn($name)) {
         return isset($this->data[$name]) ? $this->data[$name] : false;
-      } elseif ($this->table->getRelation($name)) {
+      } elseif ($this->table->getRelationInfo($name)) {
         $this->{$name} = $this->getRelatedObject($name);
         return $this->{$name};
       }
@@ -124,7 +124,7 @@
 
         # detect relation inf
         $relationName = $info['relationName'];
-        $relation = $this->table->getRelation($relationName);
+        $relation = $this->table->getRelationInfo($relationName);
         if (empty($relation)) {
           throw new \Uc\Core\Exception('Not valid relation name: ' . $relationName);
         }
@@ -254,7 +254,7 @@
      * @return mixed
      */
     protected function getRelatedObject($name) {
-      $relation = $this->table->getRelation($name);
+      $relation = $this->table->getRelationInfo($name);
       $tableClassName = $relation['table'];
 
       /** @var $table \Uc\Core\Db\Table */

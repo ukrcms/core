@@ -8,6 +8,9 @@
    */
   abstract class Widget extends Module {
 
+    /**
+     * @var array
+     */
     protected $options = array();
 
     /**
@@ -23,6 +26,7 @@
      * <code>
      * \Widget\Menu::widget()->setItems($menuItems)->show();
      * </code>
+     *
      * @param array $options
      * @return $this
      */
@@ -42,7 +46,6 @@
       $this->options = $options;
       return $this;
     }
-
 
     /**
      * @return array

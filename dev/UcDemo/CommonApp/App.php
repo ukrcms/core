@@ -24,7 +24,7 @@
       if (empty(self::$app)) {
 
         $config = require_once __DIR__ . '/config.php';
-        $app = \Uc::initApp('\Uc\Core\App', $config);
+        $app = \Uc::initApp(new \Uc\Core\App($config));
 
         /** @var $app \Uc\Core\App */
         self::$app = $app;

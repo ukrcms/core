@@ -1,9 +1,17 @@
 <?php
 
   /**
-   * Container Class of Application
+   * Simple registry for Application
    *
-   * @todo #phpstorm plugin. initApp and app methods return instance of class $appClass
+   * If you need several applications you can simply inherit this class
+   *
+   * <code>
+   *  class Cf extends Uc{}
+   *  Cf::initApp(new \Cf\App($config));
+   *  Cf::app();
+   * </code>
+   *
+   * @todo #phpstorm plugin. initApp and app methods return instance of class $app
    * @author  Ivan Scherbak <dev@funivan.com>
    */
   class Uc {
@@ -14,21 +22,19 @@
     private static $app = null;
 
     /**
-     *
-     * @param string $appClass
-     * @param array $components
+     * @param \Uc\Core\App $app
      * @return \Uc\Core\App
      */
-    public static function initApp($appClass, $components = array()) {
-      self::$app = new $appClass($components);
-      return self::$app;
+    public static function initApp(\Uc\Core\App $app) {
+      static::$app = $app;
+      return static::$app;
     }
 
     /**
-     * @return \Uc\Core\App
+     * @return \Uc\Core\App|null
      */
     public static function app() {
-      return self::$app;
+      return static::$app;
     }
 
   }

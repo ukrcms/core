@@ -7,14 +7,31 @@
    */
   class Config extends \Uc\Core\Component {
 
+    /**
+     * @var array
+     */
     public $bundles = array();
 
+    /**
+     * @var string
+     */
     public $basePath = '';
 
+    /**
+     * @var string
+     */
     public $filesPath = '';
 
+    /**
+     * Route to error action
+     * For example: app/site/error
+     * @var string
+     */
     public $errorActionPath = '';
 
+    /**
+     * @var array
+     */
     public $developersIp = array();
 
     /**

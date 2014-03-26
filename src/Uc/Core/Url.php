@@ -8,8 +8,6 @@
   class Url extends Component {
 
     /**
-     *
-     *
      * @var array
      */
     public $rules = array();
@@ -34,10 +32,6 @@
      */
     protected $requestUrl = '';
 
-    /**
-     * @var string
-     */
-    protected $requestLangUrl = '';
 
     /**
      * @var string
@@ -119,8 +113,6 @@
 
       if (!empty($this->rules)) {
 
-        $this->parseLang();
-
         $queryString = !empty($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '';
         $this->requestPath = str_replace('?' . $queryString, '', $this->requestUrl);
 
@@ -163,63 +155,6 @@
         throw new \Uc\Core\Exception('Url rules is empty');
       }
       return false;
-    }
-
-    protected function parseLang() {
-      $url = $_SERVER['REQUEST_URI'];
-
-      if (!isset(\Uc::app()->language)) {
-        if (!empty($this->baseUrl)) {
-          $this->baseUrl = rtrim($this->baseUrl, '/');
-          $this->requestUrl = preg_replace('!^' . $this->baseUrl . '!', '', $url);
-        } else {
-          $this->requestUrl = $url;
-        }
-      } else {
-        $uri = $this->protocol . '://' . $this->hostName . $url;
-
-        foreach (\Uc::app()->language->getLanguages() as $key => $value) {
-          $find = false;
-          foreach (\Uc::app()->language->getLanguages() as $k => $v) {
-            $s = '!^' . $this->protocol . '://' . $v . '/!';
-            if (preg_match('!^' . $value . '!', $v) && (strlen($v) > strlen($value))) {
-              if (preg_match($s, $uri)) {
-                \Uc::app()->language->setCurrent($k);
-                $find = true;
-                break;
-              }
-            }
-          }
-
-          if ($find) {
-            break;
-          }
-
-          $search = '!^' . $this->protocol . '://' . $value . '/!';
-          if (preg_match($search, $uri)) {
-            \Uc::app()->language->setCurrent($key);
-            break;
-          }
-        }
-
-        $this->requestUrl = preg_replace('!^' . $this->protocol . '://' . \Uc::app()->language->getCurrentLangValue() . '!', '', $uri);
-      }
-
-      if (empty($this->requestUrl)) {
-        $this->requestUrl = '/';
-      }
-    }
-
-    /**
-     * @param $lang
-     * @return string
-     * @throws Exception
-     */
-    protected function getRequestLangUrl($lang) {
-      if (!\Uc::app()->language->exist($lang)) {
-        throw new \Uc\Core\Exception("Current language is not exist in class " . get_class($this));
-      }
-      return $this->protocol . '://' . \Uc::app()->language->getLangValue($lang);
     }
 
     /**
@@ -271,9 +206,6 @@
      * @return string
      */
     public function getAbsoluteRequestUrl() {
-      if (isset(\Uc::app()->language)) {
-        return $this->getRequestLangUrl(\Uc::app()->language->getCurrent()) . $this->requestUrl;
-      }
       return $this->getUrl() . $this->requestUrl;
     }
 
@@ -283,20 +215,12 @@
      * @throws Exception
      */
     public function getAbsoluteRequestUrlByLang($lang) {
-      if (isset(\Uc::app()->language)) {
-        if (!\Uc::app()->language->exist($lang)) {
-          throw new \Uc\Core\Exception("Current language is not exist");
-        }
-        return $this->getRequestLangUrl($lang) . $this->requestUrl;
-      }
-
       return $this->getUrl() . $this->requestUrl;
     }
 
     /**
-     * Absolute url to index
+     * Absolute url to index page
      *
-     * @author  Ivan Scherbak <dev@funivan.com> 8/13/12
      * @return string
      */
     public function getUrl() {
@@ -311,7 +235,7 @@
     }
 
     /**
-     * @param $route
+     * @param string $route
      * @param array $params
      * @param null $code
      */
@@ -325,7 +249,8 @@
     /**
      * Create url from route
      * @todo #phpstorm route is reference to action method in controller
-     * @param $route
+     *
+     * @param string $route
      * @param array $params
      * @param null $lang
      * @return string
@@ -364,10 +289,6 @@
             $url .= '?' . http_build_query($params);
           }
         }
-      }
-
-      if (isset(\Uc::app()->language)) {
-        return $this->getRequestLangUrl(empty($lang) ? \Uc::app()->language->getCurrent() : $lang) . $url;
       }
 
       return $this->getUrl() . $url;

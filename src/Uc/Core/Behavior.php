@@ -1,13 +1,10 @@
 <?php
 
-  /**
-   * @author Ivan Shcherbak <dev@funivan.com>
-   */
+
   namespace Uc\Core;
 
   /**
-   *
-   * @package Uc\Core
+   * @author Ivan Shcherbak <dev@funivan.com>
    */
   class Behavior {
 
@@ -18,8 +15,13 @@
      */
     protected $owner = null;
 
+    /**
+     * Automatically invoke on attachBehavior from component
+     *
+     * @return $this
+     */
     public function init() {
-
+      return $this;
     }
 
     /**

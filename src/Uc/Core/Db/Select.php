@@ -95,7 +95,7 @@
           return $this->joinWithSelect[$relationName];
         }
 
-        $relation = $this->table->getRelation($relationName);
+        $relation = $this->table->getRelationInfo($relationName);
         if (empty($relation)) {
           throw new \Uc\Core\Exception('Not valid relation name: ' . $relationName . ' in table ' . get_class($this->table));
         }
@@ -192,13 +192,12 @@
       return $this->table->getAdapter();
     }
 
-
     /**
      *
-     * @param mixed (array | string) $cols
+     * @param array|string $cols
      * @return $this
      */
-    public function cols($cols) {
+    public function selectColumns($cols) {
       if (is_array($cols)) {
         $this->selectCols = $cols;
       } else {
@@ -304,7 +303,7 @@
      */
     public function order($field, $exp = false) {
       if (!empty($exp)) {
-        $this->order['_def'] = \Uc::app()->db->quote($field) . " " . $exp;
+        $this->order['_def'] = $this->getAdapter()->quote($field) . " " . $exp;
       } else {
         $this->order['_def'] = $field;
       }
@@ -315,11 +314,15 @@
      * Add order by field
      *
      * @param string $field
-     * @param string $exp
+     * @param bool|string $exp
      * @return $this
      */
-    public function addOrder($field, $exp) {
-      $this->order[$field] = $field . " " . $exp;
+    public function addOrder($field, $exp = false) {
+      if (!empty($exp)) {
+        $this->order[] = $this->getAdapter()->quote($field) . " " . $exp;
+      } else {
+        $this->order[] = $field;
+      }
       return $this;
     }
 
@@ -499,7 +502,7 @@
             if ($bindValue !== null) {
               $pos = strpos($condition, '?');
               if ($pos !== false) {
-                $condition = substr_replace($condition, $this->table->getAdapter()->quote($bindValue), $pos, 1);
+                $condition = substr_replace($condition, $this->getAdapter()->quote($bindValue), $pos, 1);
               }
             }
           }

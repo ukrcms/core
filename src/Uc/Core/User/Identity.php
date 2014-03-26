@@ -2,12 +2,9 @@
   namespace Uc\Core\User;
 
   /**
-   *
-   * @package Uc\Core\User
+   * @author Ivan Shcherbak <dev@funivan.com>
    */
   abstract class Identity extends \Uc\Core\Component {
-
-    const N = __CLASS__;
 
     public $loginRoute = null;
 
@@ -26,6 +23,16 @@
       $this->init();
     }
 
+    public abstract function getUser();
+
+    /**
+     * Implement this method
+     *
+     * @param string $login
+     * @param string $password
+     * @return bool
+     */
+    public abstract function authenticate($login, $password);
 
     /**
      * @return string
@@ -35,79 +42,64 @@
     }
 
     /**
-     * @return null
+     * @return null|int
      */
     public function getId() {
       return (isset($_SESSION[$this->getSessionKey()])) ? $_SESSION[$this->getSessionKey()] : null;
     }
 
     /**
-     * @param $id
+     * @param int $id
      */
     public function setId($id) {
       $_SESSION[$this->getSessionKey()] = $id;
     }
 
+    /**
+     * @return $this
+     */
     public function deleteId() {
       unset($_SESSION[$this->getSessionKey()]);
+      return $this;
     }
 
     /**
-     * @return null
+     * @return boolean
      */
     public function isLogin() {
-      return $this->getId();
+      return $this->getId() !== null;
     }
 
     /**
-     * @return null
+     * @return string
      */
     public function getLoginRoute() {
       return $this->loginRoute;
     }
 
     /**
-     * @return null
+     * @return string
      */
     public function getSuccessLoginRoute() {
       return $this->successLoginRoute;
     }
 
     /**
-     * @return null
+     * @return string
      */
     public function getSuccessLogoutRoute() {
       return $this->successLogoutRoute;
     }
 
     /**
-     * @return null
+     * @return string
      */
     public function getLogoutRoute() {
       return $this->logoutRoute;
     }
 
-
     /**
-     * Implement this method
-     *
-     * @return bool
-     */
-    public function getUser() {
-      return false;
-    }
-
-    /**
-     * Implement this method
-     *
-     * @param $login
-     * @param $password
-     * @return bool
-     */
-    public abstract function authenticate($login, $password);
-
-    /**
-     * @param $password
+     * @param string $password
      * @return string
      */
     public function getPasswordHash($password) {
@@ -116,8 +108,8 @@
     }
 
     /**
-     * @param $password
-     * @param $hash
+     * @param string $password
+     * @param string $hash
      * @return bool
      */
     public function checkPassword($password, $hash) {

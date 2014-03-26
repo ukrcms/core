@@ -12,7 +12,7 @@
     /**
      * Array of behaviors attached to this object
      *
-     * @var array
+     * @var Behavior[]
      */
     protected $behaviors = array();
 
@@ -45,7 +45,7 @@
      *  $this->attachBehavior('image', $this->image);
      * }
      * </code>
-     * @param $name
+     * @param string $name
      * @param Behavior $behavior
      * @return $this
      */
@@ -62,11 +62,10 @@
      *  $this->runAllBehaviors('beforeSave');
      * </code>
      *
-     * @param $methodName
+     * @param string $methodName
      * @return $this
      */
     public function runAllBehaviors($methodName) {
-      /** @var $behavior Behavior */
       foreach ($this->behaviors as $behavior) {
         if ($behavior->hasMethod($methodName)) {
           $behavior->$methodName();
@@ -82,7 +81,7 @@
      *  $this->removeBehavior('image');
      * </code>
      *
-     * @param $behaviorName
+     * @param string $behaviorName
      * @return $this
      */
     public function removeBehavior($behaviorName) {

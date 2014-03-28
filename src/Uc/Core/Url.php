@@ -113,6 +113,19 @@
 
       if (!empty($this->rules)) {
 
+        $url = $_SERVER['REQUEST_URI'];
+
+        if (!empty($this->baseUrl)) {
+          $this->baseUrl = rtrim($this->baseUrl, '/');
+          $this->requestUrl = preg_replace('!^' . $this->baseUrl . '!', '', $url);
+        } else {
+          $this->requestUrl = $url;
+        }
+
+        if (empty($this->requestUrl)) {
+          $this->requestUrl = '/';
+        }
+
         $queryString = !empty($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '';
         $this->requestPath = str_replace('?' . $queryString, '', $this->requestUrl);
 

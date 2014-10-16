@@ -1,4 +1,5 @@
 <?php
+
   namespace Uc\Core\User;
 
   /**
@@ -16,9 +17,6 @@
 
     public $directAccess = null;
 
-    /**
-     *
-     */
     public function __construct() {
       $this->init();
     }
@@ -119,4 +117,5 @@
         return false;
       }
     }
+
   }

@@ -32,74 +32,31 @@
      *
      * @var array
      */
-    private $columns = array();
+    protected $columns = array();
 
     /**
      * Primary key of the table
      *
      * @var string
      */
-    private $pk = false;
-
-    /**
-     * @var bool
-     */
-    protected $isMultiLanguage = false;
+    protected $pk = false;
 
     /**
      * @var string
      */
-    protected $currentLanguage = '';
+    protected $selectClass = '\Uc\Core\Db\Select';
 
-    /**
-     * @var null
-     */
-    protected $lastInsertedRowCache = null;
-
-    /*
-     * array fields in table
-     */
-    protected $fieldsInTable = array();
-
-    /**
-     * @todo refactor. Move to method
-     * @var string
-     */
-    protected $selectClass = \Uc\Core\Db\Select::N;
-
+    protected $modelClass = '\Uc\Core\Db\Model';
+    
     protected static $tableInstances = array();
-
-
-    /**
-     * @return string
-     */
-    public abstract function getModelClass();
 
     /**
      * @return string
      */
     public abstract function getTableName();
 
-    /**
-     * @return string
-     */
-    public function getMultiLangTable() {
-      return $this->getTableName() . \Uc::app()->db->tableLangsSuffix;
-    }
-
 
     /**
-     * Очищення кешу, останнього доданого рядка в основній таблиці,
-     * потрібно для роботи багатомовності,
-     * основна таблиця посилається на таблицю з мовами
-     */
-    public function clearLastInsertedRowCache() {
-      $this->lastInsertedRowCache = null;
-    }
-
-
-    /**
-     *
      * @return array
      */
     public function relations() {
@@ -107,82 +64,8 @@
     }
 
     /**
-     * @param string $tableName
-     * @param array $binds key=>value   Key - name of column
-     * @return \PDOStatement
-     */
-    private function insertRow($tableName, array $binds) {
-      $columns = array();
-
-      $db = $this->getAdapter();
-
-      foreach ($binds as $col => $value) {
-        $columns[] = $db->quote($col) . ' = ?';
-      }
-
-      $sql = "INSERT INTO " . $db->quote($tableName) . ' SET ' . implode(', ', $columns) . '';
-      $binds = array_values($binds);
-
-      return $db->execute($sql, $binds);
-    }
-
-
-    /**
-     * @param string $tableName
-     * @param array $binds
-     * @param array|string $where
-     * @return \PDOStatement
-     */
-    protected function updateRow($tableName, array $binds, $where) {
-
-      $columns = array();
-
-      $db = $this->getAdapter();
-      foreach ($binds as $col => $value) {
-        $columns[] = $db->quote($col) . ' = ?';
-      }
-
-      list($whereCondition, $params) = $this->getWhereAndBinds($where);
-      $binds = array_values($binds);
-      $binds = array_merge($binds, $params);
-
-      $sql = "UPDATE " . $db->quote($tableName) . ' SET ' . implode(', ', $columns) . ' WHERE ' . $whereCondition;
-
-      return $db->execute($sql, $binds);
-    }
-
-    /**
-     * Розставовка ключів і значень для запиту в БД
-     * @param $fields
-     * @param $params
-     * @param $set
-     */
-    private static function extractFieldsValues($fields, $params, $set) {
-      foreach ($fields as $key => $value) {
-        $params[] = $value;
-        $set[] = '`' . $key . '` = ? ';
-      }
-    }
-
-    private function insertRowInTable($tableName, $tableParams, $tableSet) {
-      $sql = 'Insert into ' . $tableName . ' Set ' . implode(', ', $tableSet);
-      $smt = $this->getAdapter()->execute($sql, $tableParams);
-      return $smt->errorCode();
-    }
-
-    private function updateRowInTable($tableName, $whereString, $params, $set) {
-      $sql = 'Update `' . $tableName . '` Set ' . implode(', ', $set) . ' Where ' . $whereString . '';
-      return $this->getAdapter()->execute($sql, $params);
-    }
-
-    private function deleteRowInTable($tableName, $whereString, $params) {
-      $sql = 'Delete from `' . $tableName . '`  Where ' . $whereString . '';
-      return $this->getAdapter()->execute($sql, $params);
-    }
-
-
-    /**
      * Return relation info as array or null if relation with this name doe not exist
+     *
      * @param string $name
      * @return array|null
      */
@@ -197,27 +80,7 @@
      */
     public function __construct() {
 
-      if ($this->isMultiLanguage && empty(\Uc::app()->db->tableLangsSuffix)) {
-        throw new \Uc\Core\Exception('Invalid tableLangsSuffix for multilanguage table');
-      }
-
-      $stmt = $this->getAdapter()->prepare('SHOW COLUMNS FROM ' . $this->getAdapter()->quote($this->getTableName()));
-
-      $stmt->execute();
-      $rawColumnData = $stmt->fetchAll();
-
-      $this->setFieldsInTable($this->getTableName(), $rawColumnData);
-
-      if ($this->isMultiLanguage) {
-        $stmt = $this->getAdapter()->prepare('SHOW COLUMNS FROM ' . $this->getAdapter()->quote($this->getMultiLangTable()));
-        $stmt->execute();
-        $rawColumnDataMultiLang = $stmt->fetchAll();
-
-        $this->setFieldsInTable($this->getMultiLangTable(), $rawColumnDataMultiLang);
-
-        $rawColumnData = array_merge($rawColumnData, $rawColumnDataMultiLang);
-      }
-
+      $rawColumnData = $this->getAdapter()->fetchAll('SHOW COLUMNS FROM ' . $this->getAdapter()->quote($this->getTableName()));
       $this->initMetaData($rawColumnData);
 
       $this->init();
@@ -239,34 +102,6 @@
       }
     }
 
-    /**
-     * встановлення привязки поля до конкретної таблиці
-     * @param       $tableName
-     * @param array $data
-     */
-    private function setFieldsInTable($tableName, $data = array()) {
-      foreach ($data as $item) {
-        $this->fieldsInTable[$tableName][] = $item['Field'];
-      }
-    }
-
-
-    /**
-     * Отримання назви таблиці по назві поля
-     * @param $fieldName
-     * @return bool|int|string
-     */
-    private function getTableNameByField($fieldName) {
-
-      foreach ($this->fieldsInTable as $key => $value) {
-
-        $item = array_search($fieldName, $value);
-        if ($item != false) {
-          return $key;
-        }
-      }
-      return false;
-    }
 
     /**
      * @return \Uc\Core\Db
@@ -282,7 +117,7 @@
       $tableClass = get_called_class();
       if (empty(self::$tableInstances[$tableClass])) {
         self::$tableInstances[$tableClass] = new $tableClass();
-      }
+      }               
       return self::$tableInstances[$tableClass];
     }
 
@@ -407,7 +242,7 @@
     }
 
     /**
-     * @author  Ivan Scherbak <dev@funivan.com> 7/20/12 9:37 PM
+     *
      * @param array $fields
      * @return integer|boolean
      */
@@ -455,13 +290,25 @@
     }
 
     /**
+     * Delete items from database
+     *
+     * ```php
+     * $table->delete(); // delete all from table
+     *
+     * $table->delete( [ 'title' => 'custom' ] );
+     *
+     *
+     * $table->delete( 12 ); // primary key = 12
+     *
+     * ```
+     *
      * @param $where
      * @return \PDOStatement
      */
     public function delete($where) {
       list($whereCondition, $binds) = $this->getWhereAndBinds($where);
       $db = $this->getAdapter();
-      $sql = 'Delete from ' . $db->quote($this->getTableName()) . '  WHERE ' . $whereCondition;
+      $sql = 'DELETE FROM ' . $db->quote($this->getTableName()) . '  WHERE ' . $whereCondition;
       return $db->execute($sql, $binds);
     }
 
@@ -488,9 +335,7 @@
      * @return Model
      */
     public function createModel(array $data = array(), $config = array()) {
-      $className = $this->getModelClass();
-      $object = new $className($data, $config, $this);
-      return $object;
+      return (new $this->modelClass($data, $config, $this));
     }
 
   }

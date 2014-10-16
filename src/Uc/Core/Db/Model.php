@@ -82,6 +82,11 @@
     }
 
     /**
+     *
+     * ```
+     * $post->user ; // user object from relations
+     * ```
+     *
      * @param $name
      * @return bool
      */
@@ -102,8 +107,8 @@
       if ($this->table->hasColumn($name)) {
         return isset($this->data[$name]) ? $this->data[$name] : false;
       } elseif ($this->table->getRelationInfo($name)) {
-        $this->{$name} = $this->getRelatedObject($name);
-        return $this->{$name};
+        $this->$name = $this->getRelatedObject($name);
+        return $this->$name;
       }
       throw new \Uc\Core\Exception('Can not get property ' . $name);
     }
@@ -112,7 +117,19 @@
     /**
      * New call
      * You can add/flush/set model relations
+     * ```php
+     * // for one to one
+     * $post->setUser($user);
      *
+     * // for many to many
+     * $post->addTags([$tag1, $tag2]);
+     * $post->addTags([$customTag]);
+     *
+     * // for many to many
+     * $post->removeTags(); // re,move all tags
+     *
+     * ```
+     * @todo remove one tag from model $post->removeTags([$tagA]);
      * @param $name
      * @param $arguments
      * @return bool
@@ -128,8 +145,9 @@
         if (empty($relation)) {
           throw new \Uc\Core\Exception('Not valid relation name: ' . $relationName);
         }
-        /** @var $table Table */
-        $table = $relation['table']::instance();
+        /** @var $tableClassName Table */
+        $tableClassName = $relation['table'];
+        $table = $tableClassName::instance();
         $relationType = $relation['type'];
         switch ($info['actionName']) {
           case 'remove':
@@ -141,11 +159,9 @@
 
             $id = $this->pk();
             if (!empty($id)) {
-              $db = $table->getAdapter();
-              $q = 'DELETE FROM ' . $db->quote($relationTableReference['tableName'])
-                . ' where '
-                . $db->quote($relationTableReference['myField']) . ' = ? ';
-              $db->execute($q, array($id));
+              $table->delete(array(
+                $relationTableReference['myField'] => $id
+              ));
               return true;
             }
 
@@ -162,15 +178,13 @@
               throw new \Uc\Core\Exception('You can add connections only for stored models');
             }
 
-            $models = !empty($arguments[0]) ? $arguments[0] : null;
-            if ($models === null) {
+            if (empty($arguments[0]) or !is_array($arguments[0])) {
               throw new \Uc\Core\Exception('You need related models when you add connections');
             }
 
-            if (!is_array($models)) {
-              $models = array($models);
-            }
+            $models = $arguments[0];
 
+            /** @var Model $model */
             foreach ($models as $model) {
               if ($model->stored() == false) {
                 throw new \Uc\Core\Exception('Related model not stored. Save it and try again to add connections');
@@ -208,6 +222,8 @@
               throw new \Uc\Core\Exception('myField required in relation');
             }
 
+            /** @var $model Model */
+
             $model = !empty($arguments[0]) ? $arguments[0] : null;
 
             if ($model === null) {
@@ -217,7 +233,6 @@
               throw new \Uc\Core\Exception('Related model not stored. Save it first');
             }
 
-            /** @var $model Model */
             if (get_class($model->getTable()) !== $relation['table']) {
               throw new \Uc\Core\Exception('You can set only model created by table ' . $relation[1]);
             }
@@ -257,7 +272,7 @@
       $relation = $this->table->getRelationInfo($name);
       $tableClassName = $relation['table'];
 
-      /** @var $table \Uc\Core\Db\Table */
+      /** @var $tableClassName \Uc\Core\Db\Table */
       $table = $tableClassName::instance();
 
       if ($relation['type'] == $table::RELATION_ONE_TO_ONE) {
@@ -317,8 +332,17 @@
     }
 
     /**
-     * @param $key
-     * @return null
+     * Return real value stored in database
+     * ```php
+     * $post->title = 'custom title';
+     * $post->save();
+     * $post->title = 'other'
+     * echo $post->title; // other;
+     * echo $post->getInitialValue('title'); // 'custom-title'
+     * ```
+     *
+     * @param string $key
+     * @return string|int|null
      */
     public function getInitialValue($key) {
       if ($this->stored() == false) {
@@ -343,85 +367,80 @@
 
       # begin transaction
       $transactionKey = md5(microtime() . rand(0, 10)) . get_class($this);
-      try {
 
-        \Uc::app()->db->startTransaction($transactionKey);
+      \Uc::app()->db->startTransaction($transactionKey);
 
-        if (!empty($this->columnChanged) or $this->stored == false) {
+      if (!empty($this->columnChanged) or $this->stored == false) {
 
-          $table = $this->table;
+        $table = $this->table;
 
-          # insert or update
+        # insert or update
 
-          if ($this->stored) {
-            # do Update of entity
-            $fields = array_intersect_key($this->data, $this->columnChanged);
+        if ($this->stored) {
+          # do Update of entity
+          $fields = array_intersect_key($this->data, $this->columnChanged);
 
-            $result = $this->table->update($fields, $this->pk());
-          } else {
-            # do Insert of entity
-            $result = $this->table->insert($this->data);
-            if (!is_bool($result)) {
-              $pk = $table->pk();
-              $this->$pk = $result; # last insert id
-            }
-          }
-
-          if ($result) {
-            # make entity new state
-            $this->stored = true;
-            $this->columnChanged = array();
-          } else {
-            #in fact if model not saved we have exception from DB
-            throw new \Uc\Core\Exception('Can not save entity ' . get_class($this));
+          $result = $this->table->update($fields, $this->pk());
+        } else {
+          # do Insert of entity
+          $result = $this->table->insert($this->data);
+          if (!is_bool($result)) {
+            $pk = $table->pk();
+            $this->$pk = $result; # last insert id
           }
         }
 
-        # end transaction
-        // @todo make rollback
-        \Uc::app()->db->endTransaction($transactionKey);
-      } catch (\Exception $exc) {
-        echo $exc->getMessage() . "\n";
-        echo $exc->getTraceAsString();
+        if ($result) {
+          # make entity new state
+          $this->stored = true;
+          $this->columnChanged = array();
+        } else {
+          #in fact if model not saved we have exception from DB
+          throw new \Uc\Core\Exception('Can not save entity ' . get_class($this));
+        }
       }
+
+      # end transaction
+      // @todo make rollback
+      \Uc::app()->db->endTransaction($transactionKey);
+
       $this->afterSave();
       return true;
     }
 
     /**
+     * @throws \Uc\Core\Exception
      * @return bool|int
      */
     public function delete() {
-      try {
 
-        # begin transaction
-        $transactionKey = md5(microtime() . rand(0, 10)) . get_class($this);
-        $adapter = $this->table->getAdapter();
-        $adapter->startTransaction($transactionKey);
-
-        if ($this->stored != true) {
-          throw new \Uc\Core\Exception('Can not delete ' . get_class($this) . 'because it is not stored in database');
-        }
-
-        if (!$this->beforeDelete()) {
-          $adapter->endTransaction($transactionKey);
-          return false;
-        }
-
-        $result = $this->table->delete($this->pk());
-
-        $this->afterDelete();
-
-        # done. all is ok. item is saved
-        $adapter->endTransaction($transactionKey);
-        return $result;
-      } catch (\Exception $exc) {
-        echo $exc->getMessage() . "\n";
-        echo $exc->getTraceAsString();
-        die();
+      if ($this->stored != true) {
+        throw new \Uc\Core\Exception('Can not delete ' . get_class($this) . 'because it is not stored in database');
       }
+
+      # begin transaction
+      $transactionKey = md5(microtime() . rand(0, 10)) . get_class($this);
+      $adapter = $this->table->getAdapter();
+      $adapter->startTransaction($transactionKey);
+
+      if (!$this->beforeDelete()) {
+        $adapter->endTransaction($transactionKey);
+        return false;
+      }
+
+      $result = $this->table->delete($this->pk());
+
+      $this->afterDelete();
+
+      # done. all is ok. item is saved
+      $adapter->endTransaction($transactionKey);
+      return true;
+
     }
 
+    /**
+     * Invoke behavior after save
+     */
     protected function afterSave() {
       $this->runAllBehaviors('afterSave');
     }
